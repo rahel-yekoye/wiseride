@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum ContentType { json, formData, multipart }
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:5000/api';
+  static const String baseUrl = 'http://localhost:4000/api';
   static const int connectTimeout = 30000; // 30 seconds
   static const int receiveTimeout = 30000; // 30 seconds
 
