@@ -9,6 +9,9 @@ class Ride {
   final Location destination;
   final double? fare;
   final String status;
+  final String? vehicleType;
+  final List<Location>? route; // Add this field
+  final DateTime? createdAt; // Add this field
 
   Ride({
     this.id,
@@ -19,6 +22,9 @@ class Ride {
     required this.destination,
     this.fare,
     this.status = 'requested',
+    this.vehicleType,
+    this.route, // Add this parameter
+    this.createdAt, // Add this parameter
   });
 
   Map<String, dynamic> toJson() {
@@ -30,6 +36,9 @@ class Ride {
       'destination': destination.toJson(),
       'fare': fare,
       'status': status,
+      'vehicleType': vehicleType,
+      'route': route?.map((location) => location.toJson()).toList(), // Add this line
+      'createdAt': createdAt?.toIso8601String(), // Add this line
     };
   }
 
@@ -43,6 +52,13 @@ class Ride {
       destination: Location.fromJson(json['destination'] ?? {}),
       fare: json['fare']?.toDouble(),
       status: json['status'] ?? 'requested',
+      vehicleType: json['vehicleType'],
+      route: (json['route'] as List?)
+          ?.map((item) => Location.fromJson(item))
+          .toList(), // Add this line
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
+          : null, // Add this line
     );
   }
 }

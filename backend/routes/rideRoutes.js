@@ -7,7 +7,12 @@ const {
   updateRideStatus,
   acceptRide,
   getAvailableRides,
-  cancelRide
+  searchAvailableRides,
+  cancelRide,
+  startRide,
+  endRide,
+  rateRide,
+  getRideStats
 } = require('../controllers/rideController');
 const auth = require('../middleware/auth');
 
@@ -19,12 +24,27 @@ router.route('/')
   .post(createRide)
   .get(getUserRides);
 
+router.route('/user')
+  .get(getUserRides);
+
 router.route('/:id')
-  .get(getRideById)
+  .get(getRideById);
+
+router.route('/:id/status')
   .put(updateRideStatus);
 
-router.put('/:id/accept', auth, acceptRide);
-router.get('/available', auth, getAvailableRides);
-router.put('/:id/cancel', auth, cancelRide);
+router.route('/search')
+  .post(searchAvailableRides);
+
+router.route('/stats')
+  .get(getRideStats);
+
+router.put('/:id/accept', acceptRide);
+router.put('/:id/start', startRide);
+router.put('/:id/end', endRide);
+router.put('/:id/cancel', cancelRide);
+router.post('/:id/rate', rateRide);
+
+router.get('/available', getAvailableRides);
 
 module.exports = router;

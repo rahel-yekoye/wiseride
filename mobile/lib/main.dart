@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/rider_home_screen.dart';
@@ -7,7 +9,14 @@ import 'screens/parent_home_screen.dart';
 import 'screens/driver_home_screen.dart';
 import 'screens/admin_home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(
     ChangeNotifierProvider(
       create: (context) => AuthService()..initialize(),
@@ -20,7 +29,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {   
     return MaterialApp(
       title: 'WiseRide',
       theme: ThemeData(
@@ -28,6 +37,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const AuthWrapper(),
+      debugShowCheckedModeBanner: false, // Remove debug banner
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'driver_available_rides_screen.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({super.key});
@@ -43,8 +44,11 @@ class DriverHomeScreen extends StatelessWidget {
                   subtitle: 'View and accept ride requests',
                   color: Colors.blue,
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Available rides feature coming soon')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DriverAvailableRidesScreen(),
+                      ),
                     );
                   },
                 ),

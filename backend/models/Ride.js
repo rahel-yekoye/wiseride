@@ -62,7 +62,30 @@ const rideSchema = new mongoose.Schema({
   route: [{
     lat: Number,
     lng: Number
-  }]
+  }],
+  ratings: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    feedback: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'failed', 'refunded'],
+    default: 'pending'
+  },
+  paymentMethod: String,
+  transactionId: String
 }, {
   timestamps: true
 });
