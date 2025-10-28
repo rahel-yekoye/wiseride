@@ -12,6 +12,17 @@ const locationSchema = new mongoose.Schema({
   address: {
     type: String,
     required: true
+  },
+  coordinates: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true
+    }
   }
 });
 
@@ -65,6 +76,33 @@ const rideSchema = new mongoose.Schema({
   }]
 }, {
   timestamps: true
+});
+
+// Create geospatial index for origin coordinates
+rideSchema.index({ 'origin.coordinates': '2dsphere' });
+rideSchema.index({ 'destination.coordinates': '2dsphere' });
+
+// Middleware to automatically set coordinates from lat/lng
+locationSchema.pre('save', function(next) {
+  if (this.lat && this.lng) {
+    this.coordinates = {
+      type: 'Point',
+      coordinates: [this.lng, this.lat] // MongoDB expects [longitude, latitude]
+    };
+  }
+  next();
+});
+
+// Middleware to set coordinates when lat/lng are updated
+locationSchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate();
+  if (update.lat && update.lng) {
+    update.coordinates = {
+      type: 'Point',
+      coordinates: [update.lng, update.lat]
+    };
+  }
+  next();
 });
 
 module.exports = mongoose.model('Ride', rideSchema);

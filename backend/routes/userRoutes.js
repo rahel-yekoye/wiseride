@@ -8,7 +8,7 @@ const {
   getUsers,
   getUserById
 } = require('../controllers/userController');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Public routes
 router.post('/register', registerUser);

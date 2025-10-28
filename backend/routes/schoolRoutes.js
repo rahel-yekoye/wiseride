@@ -9,7 +9,7 @@ const {
   getAvailableContracts,
   updateContract
 } = require('../controllers/schoolController');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // All routes are protected
 router.use(auth);
