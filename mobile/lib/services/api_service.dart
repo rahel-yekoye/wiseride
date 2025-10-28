@@ -104,13 +104,13 @@ class ApiService {
   }) async {
     // Build URL
     final uri = _buildUri(endpoint, queryParams, customBaseUrl);
-    
+
     // Prepare headers
     final headers = await _buildHeaders(requiresAuth, contentType);
-    
+
     // Log request
     _logRequest(method, uri, headers, body);
-    
+
     try {
       // Make the request
       final response = await _makeRequest(
@@ -133,30 +133,30 @@ class ApiService {
 
   // Build URI with query parameters
   Uri _buildUri(
-    String endpoint, 
+    String endpoint,
     Map<String, dynamic>? queryParams,
     String? customBaseUrl,
   ) {
     final base = customBaseUrl ?? baseUrl;
     final uri = Uri.parse('$base$endpoint');
-    
+
     if (queryParams != null) {
       return uri.replace(queryParameters: {
         ...uri.queryParameters,
         ...queryParams.map((key, value) => MapEntry(key, value.toString())),
       });
     }
-    
+
     return uri;
   }
 
   // Build request headers
   Future<Map<String, String>> _buildHeaders(
-    bool requiresAuth, 
+    bool requiresAuth,
     ContentType contentType,
   ) async {
     final headers = Map<String, String>.from(_defaultHeaders);
-    
+
     // Set content type
     switch (contentType) {
       case ContentType.json:
@@ -170,7 +170,7 @@ class ApiService {
         headers.remove('Content-Type');
         break;
     }
-    
+
     // Add auth token if required
     if (requiresAuth) {
       final token = await _getAuthToken();
@@ -178,7 +178,7 @@ class ApiService {
         headers['Authorization'] = 'Bearer $token';
       }
     }
-    
+
     return headers;
   }
 
@@ -203,19 +203,25 @@ class ApiService {
         return await http.post(
           uri,
           headers: headers,
-          body: contentType == ContentType.json ? jsonEncode(body) : body,
+          body: contentType == ContentType.json
+              ? (body == null ? null : jsonEncode(body))
+              : body,
         );
       case 'PUT':
         return await http.put(
           uri,
           headers: headers,
-          body: contentType == ContentType.json ? jsonEncode(body) : body,
+          body: contentType == ContentType.json
+              ? (body == null ? null : jsonEncode(body))
+              : body,
         );
       case 'DELETE':
         return await http.delete(
           uri,
           headers: headers,
-          body: body != null ? jsonEncode(body) : null,
+          body: (contentType == ContentType.json)
+              ? (body == null ? null : jsonEncode(body))
+              : body,
         );
       default:
         throw Exception('Unsupported HTTP method: $method');
@@ -225,26 +231,27 @@ class ApiService {
   // Handle API response
   dynamic _handleResponse(http.Response response) {
     _logResponse(response);
-    
+
     final statusCode = response.statusCode;
     final responseBody = response.body;
-    
+
     // Handle empty response
     if (responseBody.isEmpty) {
       return null;
     }
-    
+
     // Parse JSON response
     final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
-    
+
     // Handle success responses (2xx)
     if (statusCode >= 200 && statusCode < 300) {
       return jsonResponse;
     }
-    
+
     // Handle error responses
-    final errorMessage = jsonResponse['message'] ?? 'Request failed with status: $statusCode';
-    
+    final errorMessage =
+        jsonResponse['message'] ?? 'Request failed with status: $statusCode';
+
     switch (statusCode) {
       case 400:
         throw BadRequestException(errorMessage);
@@ -271,16 +278,18 @@ class ApiService {
   }
 
   // Logging helpers
-  void _logRequest(String method, Uri uri, Map<String, String> headers, dynamic body) {
+  void _logRequest(
+      String method, Uri uri, Map<String, String> headers, dynamic body) {
     if (!kDebugMode) return;
-    
+
     log('\n=== API Request ===', name: 'API');
     log('$method $uri', name: 'API');
     log('Headers: $headers', name: 'API');
-    
+
     if (body != null) {
       if (body is Map || body is List) {
-        log('Body: ${const JsonEncoder.withIndent('  ').convert(body)}', name: 'API');
+        log('Body: ${const JsonEncoder.withIndent('  ').convert(body)}',
+            name: 'API');
       } else {
         log('Body: $body', name: 'API');
       }
@@ -289,17 +298,18 @@ class ApiService {
 
   void _logResponse(http.Response response) {
     if (!kDebugMode) return;
-    
+
     final statusCode = response.statusCode;
     final isSuccess = statusCode >= 200 && statusCode < 300;
     final emoji = isSuccess ? '✅' : '❌';
-    
+
     log('\n=== API Response $emoji ===', name: 'API');
     log('Status: $statusCode', name: 'API');
-    
+
     try {
       final json = jsonDecode(utf8.decode(response.bodyBytes));
-      log('Body: ${const JsonEncoder.withIndent('  ').convert(json)}', name: 'API');
+      log('Body: ${const JsonEncoder.withIndent('  ').convert(json)}',
+          name: 'API');
     } catch (e) {
       log('Body: ${response.body}', name: 'API');
     }
@@ -307,7 +317,7 @@ class ApiService {
 
   void _logError(dynamic error) {
     if (!kDebugMode) return;
-    
+
     log('\n=== API Error ===', name: 'API');
     log('Error: $error', name: 'API');
     if (error is Error) {
@@ -319,9 +329,9 @@ class ApiService {
 // Custom exceptions
 class ApiException implements Exception {
   final String message;
-  
+
   ApiException(this.message);
-  
+
   @override
   String toString() => 'ApiException: $message';
 }
@@ -344,9 +354,9 @@ class NotFoundException extends ApiException {
 
 class ValidationException extends ApiException {
   final dynamic errors;
-  
+
   ValidationException(super.message, this.errors);
-  
+
   @override
   String toString() => 'ValidationException: $message\nErrors: $errors';
 }

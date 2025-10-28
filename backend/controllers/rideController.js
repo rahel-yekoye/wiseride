@@ -1,5 +1,7 @@
 const Ride = require('../models/Ride');
 const User = require('../models/User');
+const { emitToAllDrivers, emitToDriver, emitToRider } = require('../services/socketService');
+const { calculateDistance } = require('../services/fareCalculationService');
 
 // Create a new ride
 const createRide = async (req, res) => {
@@ -12,6 +14,16 @@ const createRide = async (req, res) => {
       origin,
       destination,
       vehicleType,
+    });
+
+    // Notify all online drivers about new ride request
+    emitToAllDrivers('ride:new_request', {
+      rideId: ride._id,
+      riderId: req.user._id,
+      origin: ride.origin,
+      destination: ride.destination,
+      vehicleType: ride.vehicleType,
+      type: ride.type
     });
 
     res.status(201).json(ride);
@@ -165,4 +177,53 @@ module.exports = {
   acceptRide,
   getAvailableRides,
   cancelRide,
+};
+
+// Search available drivers near a location
+module.exports.searchAvailableRides = async (req, res) => {
+  try {
+    const { lat, lng, radiusKm = 5, vehicleType } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ message: 'lat and lng are required' });
+    }
+
+    const query = {
+      role: 'driver',
+      isOnline: true,
+      'currentLocation.coordinates': {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
+          $maxDistance: Number(radiusKm) * 1000
+        }
+      }
+    };
+    if (vehicleType) {
+      query['vehicleInfo.vehicleType'] = vehicleType;
+    }
+
+    const drivers = await User.find(query)
+      .select('name phone vehicleInfo currentLocation rating')
+      .limit(50);
+
+    const enriched = drivers.map((d) => {
+      const dlat = d.currentLocation?.coordinates?.coordinates?.[1];
+      const dlng = d.currentLocation?.coordinates?.coordinates?.[0];
+      const distanceKm = (dlat !== undefined && dlng !== undefined)
+        ? calculateDistance(parseFloat(lat), parseFloat(lng), dlat, dlng)
+        : null;
+      return {
+        id: d._id,
+        name: d.name,
+        phone: d.phone,
+        vehicleInfo: d.vehicleInfo,
+        rating: d.rating,
+        distanceKm: distanceKm !== null ? Number(distanceKm.toFixed(2)) : null,
+        location: d.currentLocation,
+      };
+    });
+
+    res.json({ drivers: enriched });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };

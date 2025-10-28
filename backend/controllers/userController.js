@@ -79,6 +79,7 @@ const getUserProfile = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        emergencyContacts: user.emergencyContacts || [],
         driverVerified: user.driverVerified,
       });
     } else {
@@ -98,6 +99,9 @@ const updateUserProfile = async (req, res) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.phone = req.body.phone || user.phone;
+      if (Array.isArray(req.body.emergencyContacts)) {
+        user.emergencyContacts = req.body.emergencyContacts.slice(0, 3);
+      }
 
       const updatedUser = await user.save();
 
@@ -107,6 +111,7 @@ const updateUserProfile = async (req, res) => {
         email: updatedUser.email,
         role: updatedUser.role,
         phone: updatedUser.phone,
+        emergencyContacts: updatedUser.emergencyContacts || [],
         driverVerified: updatedUser.driverVerified,
         token: generateToken(updatedUser._id),
       });

@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "init-db": "node scripts/initIndexes.js",
+    "seed-data": "node scripts/seedData.js",
+    "setup": "npm run init-db && npm run seed-data",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -16,7 +19,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "helmet": "^7.0.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "socket.io": "^4.6.1",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
