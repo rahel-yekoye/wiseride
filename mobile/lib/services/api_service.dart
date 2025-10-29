@@ -8,7 +8,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum ContentType { json, formData, multipart }
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:4000/api';
+  // Use localhost for web, 10.0.2.2 for Android emulator to access host machine
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api';
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5000/api';
+    } else {
+      return 'http://localhost:5000/api';
+    }
+  }
+  
   static const int connectTimeout = 30000; // 30 seconds
   static const int receiveTimeout = 30000; // 30 seconds
 

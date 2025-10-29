@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const http = require('http');
+const socketIo = require('socket.io');
 const cron = require('node-cron');
 
 // Load environment variables
@@ -27,6 +28,12 @@ connectDB().then(async () => {
 // Initialize app
 const app = express();
 const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
 // Middleware
 app.use(helmet());
@@ -51,12 +58,66 @@ app.use('/api/school', require('./routes/schoolRoutes'));
 app.use('/api/driver', require('./routes/driverRoutes'));
 app.use('/api/registration', require('./routes/registrationRoutes'));
 app.use('/api/earnings', require('./routes/earningsRoutes'));
-
-// New enhanced feature routes
 app.use('/api/ratings', require('./routes/ratingRoutes'));
 app.use('/api/promo', require('./routes/promoCodeRoutes'));
 app.use('/api/ride-history', require('./routes/rideHistoryRoutes'));
 app.use('/api/emergency', require('./routes/emergencyRoutes'));
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  // Join user-specific room
+  socket.on('join_user_room', (data) => {
+    socket.join(`user_${data.userId}`);
+    console.log(`User ${data.userId} joined their room`);
+  });
+
+  // Join ride-specific room
+  socket.on('join_ride_room', (data) => {
+    socket.join(`ride_${data.rideId}`);
+    console.log(`User joined ride room: ${data.rideId}`);
+  });
+
+  // Leave ride room
+  socket.on('leave_ride_room', (data) => {
+    socket.leave(`ride_${data.rideId}`);
+    console.log(`User left ride room: ${data.rideId}`);
+  });
+
+  // Handle ride requests
+  socket.on('ride_request', (data) => {
+    // Notify available drivers
+    socket.broadcast.emit('new_ride_request', data);
+    console.log('Ride request broadcasted:', data.rideId);
+  });
+
+  // Handle driver location updates
+  socket.on('driver_location_update', (data) => {
+    // Broadcast to riders in the same ride
+    socket.to(`ride_${data.rideId}`).emit('driver_location_update', data);
+  });
+
+  // Handle rider location updates
+  socket.on('rider_location_update', (data) => {
+    // Broadcast to drivers in the same ride
+    socket.to(`ride_${data.rideId}`).emit('rider_location_update', data);
+  });
+
+  // Handle messages
+  socket.on('message_to_driver', (data) => {
+    socket.to(`ride_${data.rideId}`).emit('message_from_rider', data);
+  });
+
+  socket.on('message_to_rider', (data) => {
+    socket.to(`ride_${data.rideId}`).emit('message_from_driver', data);
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -71,10 +132,6 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
-
-// Initialize Socket.io
-const { initializeSocket } = require('./services/socketService');
-const io = initializeSocket(server);
 
 // Scheduled tasks for earnings reset
 const { resetEarnings } = require('./controllers/earningsController');
@@ -98,14 +155,17 @@ cron.schedule('0 0 1 * *', () => {
 });
 
 // Port configuration
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
-// Start server
+// Start server with socket.io
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('Socket.io initialized for real-time notifications');
   console.log('Scheduled tasks initialized for earnings reset');
 });
+
+// Make io available to other modules
+app.set('io', io);
 
 module.exports = { app, server, io };

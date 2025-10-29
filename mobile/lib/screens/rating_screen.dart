@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:provider/provider.dart';
+import '../models/ride.dart';
+import '../services/ride_service.dart';
 import '../services/api_service.dart';
 
 class RatingScreen extends StatefulWidget {
-  final String rideId;
-  final String driverName;
+  final Ride ride;
+  final bool isDriver;
+  final String? driverName;
   final String? driverPhoto;
-  
+
   const RatingScreen({
     super.key,
-    required this.rideId,
-    required this.driverName,
+    required this.ride,
+    this.isDriver = false,
+    this.driverName,
     this.driverPhoto,
   });
 
@@ -18,9 +24,10 @@ class RatingScreen extends StatefulWidget {
 }
 
 class _RatingScreenState extends State<RatingScreen> {
-  double _overallRating = 5.0;
+  double _rating = 0.0;
   final _reviewController = TextEditingController();
   bool _isSubmitting = false;
+  String? _error;
   
   final Map<String, double> _categoryRatings = {
     'cleanliness': 5.0,
@@ -84,6 +91,46 @@ class _RatingScreenState extends State<RatingScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+=======
+  final RideService _rideService = RideService();
+  final TextEditingController _feedbackController = TextEditingController();
+  
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitRating() async {
+    if (_rating == 0.0) {
+      setState(() => _error = 'Please provide a rating');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    try {
+      final rideService = RideService();
+      await rideService.submitRating(
+        rideId: widget.ride.id,
+        rating: _rating,
+        review: _reviewController.text,
+        categoryRatings: _categoryRatings,
+        isDriver: widget.isDriver,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(true); // Return success
+      }
+    } catch (e) {
+      setState(() => _error = 'Failed to submit rating: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -91,20 +138,20 @@ class _RatingScreenState extends State<RatingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rate Your Ride'),
-        backgroundColor: Colors.amber,
-        foregroundColor: Colors.black,
+        title: Text(widget.isDriver ? 'Rate Rider' : 'Rate Driver'),
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Driver Info
+            // User Info
             CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey.shade300,
-              backgroundImage: widget.driverPhoto != null 
+              backgroundImage: widget.driverPhoto != null
                   ? NetworkImage(widget.driverPhoto!)
                   : null,
               child: widget.driverPhoto == null
@@ -113,233 +160,88 @@ class _RatingScreenState extends State<RatingScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              widget.driverName,
+              widget.driverName ?? (widget.isDriver ? 'Rider' : 'Driver'),
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'How was your ride?',
+            Text(
+              '${widget.ride.origin} to ${widget.ride.destination}',
               style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
-            ),
-            const SizedBox(height: 32),
-            
-            // Overall Rating
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Overall Rating',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _overallRating = (index + 1).toDouble();
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Icon(
-                              index < _overallRating
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 48,
-                              color: Colors.amber,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _overallRating == 5.0
-                          ? 'Excellent!'
-                          : _overallRating >= 4.0
-                              ? 'Good'
-                              : _overallRating >= 3.0
-                                  ? 'Average'
-                                  : 'Needs Improvement',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: _overallRating >= 4.0
-                            ? Colors.green
-                            : _overallRating >= 3.0
-                                ? Colors.orange
-                                : Colors.red,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            
-            // Category Ratings
+
+            // Rating Section
+            _buildRatingSection(),
+
+            // Review Section
+            const SizedBox(height: 24),
             Card(
-              elevation: 4,
+              elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Rate by Category',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ..._categoryRatings.keys.map((category) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  _categoryIcons[category],
-                                  size: 20,
-                                  color: Colors.blue,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _categoryLabels[category]!,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Slider(
-                                    value: _categoryRatings[category]!,
-                                    min: 1,
-                                    max: 5,
-                                    divisions: 4,
-                                    label: _categoryRatings[category]!.toStringAsFixed(0),
-                                    activeColor: Colors.amber,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _categoryRatings[category] = value;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                Container(
-                                  width: 40,
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    _categoryRatings[category]!.toStringAsFixed(0),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Review Text
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Write a Review (Optional)',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      'Add a review (optional)',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _reviewController,
                       maxLines: 4,
-                      maxLength: 500,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Share your experience...',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.all(12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 32),
-            
+
+            // Error Message
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
             // Submit Button
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitRating,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.blue[600],
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: _isSubmitting
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                        ),
-                      )
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'Submit Rating',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Skip for now',
-                style: TextStyle(color: Colors.grey),
               ),
             ),
           ],
@@ -348,9 +250,167 @@ class _RatingScreenState extends State<RatingScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _reviewController.dispose();
-    super.dispose();
+  Widget _buildRatingSection() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'How was your experience?',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: RatingBar.builder(
+                initialRating: _rating,
+                minRating: 1,
+                direction: Axis.horizontal,
+                allowHalfRating: true,
+                itemCount: 5,
+                itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                itemBuilder: (context, _) => const Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                ),
+                onRatingUpdate: (rating) {
+                  setState(() {
+                    _rating = rating;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Rate by category:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ..._categoryRatings.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  children: [
+                    Icon(
+                      _categoryIcons[entry.key] ?? Icons.star,
+                      size: 20,
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry.key[0].toUpperCase() + entry.key.substring(1),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    RatingBar.builder(
+                      initialRating: entry.value,
+                      minRating: 1,
+                      maxRating: 5,
+                      itemSize: 20,
+                      itemBuilder: (context, _) => const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                      ),
+                      onRatingUpdate: (rating) {
+                        setState(() {
+                          _categoryRatings[entry.key] = rating;
+                        });
+                      },
+                    ),
+                  ],
+  Widget _buildErrorWidget() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error, color: Colors.red[600], size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _error!,
+              style: TextStyle(color: Colors.red[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submitRating,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue[600],
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: _isSubmitting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Text(
+                'Submit Rating',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+      ),
+    );
+  }
+
+  String _getRatingText(double rating) {
+    if (rating == 0) return 'Tap to rate';
+    if (rating <= 1) return 'Poor';
+    if (rating <= 2) return 'Fair';
+    if (rating <= 3) return 'Good';
+    if (rating <= 4) return 'Very Good';
+    return 'Excellent';
+  }
+
+  IconData _getVehicleIcon(String? vehicleType) {
+    switch (vehicleType) {
+      case 'bus':
+        return Icons.directions_bus;
+      case 'taxi':
+        return Icons.local_taxi;
+      case 'minibus':
+        return Icons.airport_shuttle;
+      case 'private_car':
+        return Icons.directions_car;
+      default:
+        return Icons.directions_bus;
+    }
+  }
+
+  String _getVehicleTypeLabel(String? vehicleType) {
+    switch (vehicleType) {
+      case 'bus':
+        return 'Bus';
+      case 'taxi':
+        return 'Taxi';
+      case 'minibus':
+        return 'Minibus';
+      case 'private_car':
+        return 'Private Car';
+      default:
+        return 'Vehicle';
+    }
+>>>>>>> origin/rita
   }
 }

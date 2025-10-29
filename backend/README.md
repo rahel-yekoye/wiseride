@@ -44,7 +44,7 @@ Backend API for WiseRide - Public Transport Scheduling and Route Guidance App fo
 5. Update the `.env` file with your configuration:
    ```
    NODE_ENV=development
-   PORT=4000
+   PORT=5000
    MONGO_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret_key
    ```
@@ -112,7 +112,7 @@ backend/
 | Variable | Description | Default |
 |----------|-------------|---------|
 | NODE_ENV | Application environment | development |
-| PORT | Server port | 4000 |
+| PORT | Server port | 5000 |
 | MONGO_URI | MongoDB connection string | mongodb://localhost:27017/wiseride |
 | JWT_SECRET | Secret key for JWT | wiseride_jwt_secret_key_2025 |
 

@@ -31,6 +31,27 @@
 
   <title>wiseride</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Firebase Configuration -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "your-api-key",
+      authDomain: "your-project.firebaseapp.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "your-app-id"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    
+    // Initialize Firebase Messaging
+    const messaging = firebase.messaging();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

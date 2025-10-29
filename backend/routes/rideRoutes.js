@@ -7,7 +7,12 @@ const {
   updateRideStatus,
   acceptRide,
   getAvailableRides,
-  cancelRide
+  searchAvailableRides,
+  cancelRide,
+  startRide,
+  endRide,
+  rateRide,
+  getRideStats
 } = require('../controllers/rideController');
 const { calculateFareEstimate } = require('../services/fareCalculationService');
 const { auth } = require('../middleware/auth');
@@ -44,16 +49,34 @@ router.route('/')
   .post(createRide)
   .get(getUserRides);
 
+router.route('/user')
+  .get(getUserRides);
+
 router.route('/:id')
-  .get(getRideById)
+  .get(getRideById);
+
+router.route('/:id/status')
   .put(updateRideStatus);
 
-// Search for available drivers near a location
-const { searchAvailableRides } = require('../controllers/rideController');
-router.get('/search/nearby', searchAvailableRides);
+// Search for available drivers/rides
+router.route('/search')
+  .post(searchAvailableRides);
 
-router.put('/:id/accept', auth, acceptRide);
-router.get('/available', auth, getAvailableRides);
-router.put('/:id/cancel', auth, cancelRide);
+// Get ride statistics
+router.route('/stats')
+  .get(getRideStats);
+
+// Ride management routes
+router.put('/:id/accept', acceptRide);
+router.put('/:id/start', startRide);
+router.put('/:id/end', endRide);
+router.put('/:id/cancel', cancelRide);
+router.post('/:id/rate', rateRide);
+
+// Get available rides (for drivers)
+router.get('/available', getAvailableRides);
+
+// Backward compatibility for search endpoint
+router.get('/search/nearby', searchAvailableRides);
 
 module.exports = router;
