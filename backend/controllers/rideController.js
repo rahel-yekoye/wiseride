@@ -190,13 +190,42 @@ const getAvailableRides = async (req, res) => {
       return res.status(401).json({ message: 'Only drivers can view available rides' });
     }
     
-    const rides = await Ride.find({ 
-      status: 'requested',
-      type: 'public'
-    }).sort({ createdAt: -1 });
+    // Get driver's current location from query params
+    const { lat, lng, maxDistance = 5000 } = req.query; // maxDistance in meters (default 5km)
     
-    res.json(rides);
+    if (!lat || !lng) {
+      return res.status(400).json({ message: 'Driver location (lat, lng) is required' });
+    }
+    
+    // Find rides where the origin is near the driver's location
+    const rides = await Ride.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: 'Point',
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          distanceField: 'distance',
+          maxDistance: parseInt(maxDistance),
+          spherical: true,
+          query: {
+            status: 'requested',
+            type: 'public'
+          }
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
+    
+    // Populate rider details for each ride
+    const ridesWithRiders = await Ride.populate(rides, {
+      path: 'riderId',
+      select: 'name email phone profilePicture rating'
+    });
+    
+    res.json(ridesWithRiders);
   } catch (error) {
+    console.error('Error getting available rides:', error);
     res.status(500).json({ message: error.message });
   }
 };

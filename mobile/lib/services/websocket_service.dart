@@ -23,6 +23,28 @@ class WebSocketService {
 
   bool get isConnected => _isConnected;
 
+  // Join a specific room
+  void joinRoom(String roomName) {
+    if (_isConnected && _socket != null) {
+      _socket?.emit('join_room', {
+        'room': roomName,
+        'userId': _userId,
+      });
+      debugPrint('Joined room: $roomName');
+    }
+  }
+
+  // Leave a specific room
+  void leaveRoom(String roomName) {
+    if (_isConnected && _socket != null) {
+      _socket?.emit('leave_room', {
+        'room': roomName,
+        'userId': _userId,
+      });
+      debugPrint('Left room: $roomName');
+    }
+  }
+
   // Initialize WebSocket connection
   Future<void> initialize({required String userId}) async {
     _userId = userId;
@@ -58,6 +80,11 @@ class WebSocketService {
       // Rejoin user room if userId is available
       if (_userId != null) {
         _socket?.emit('join_user_room', {'userId': _userId});
+        
+        // If this is a driver, join the drivers room
+        // Note: You'll need to pass the user's role to the WebSocketService
+        // For now, we'll assume all connected clients are drivers
+        _socket?.emit('join_room', {'room': 'drivers', 'userId': _userId});
       }
     });
 
@@ -69,6 +96,20 @@ class WebSocketService {
     _socket?.onConnectError((error) {
       debugPrint('WebSocket connection error: $error');
       _isConnected = false;
+    });
+
+    // Listen for new ride requests (from the server)
+    _socket?.on('ride:new_request', (data) {
+      debugPrint('New ride request from server: $data');
+      _rideUpdatesController.add({
+        'type': 'new_ride_request',
+        'rideId': data['rideId'],
+        'riderId': data['riderId'],
+        'origin': data['origin'],
+        'destination': data['destination'],
+        'vehicleType': data['vehicleType'],
+        'fare': data['fare'],
+      });
     });
 
     // Ride-related events

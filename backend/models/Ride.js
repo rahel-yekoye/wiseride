@@ -26,6 +26,26 @@ const locationSchema = new mongoose.Schema({
   }
 });
 
+// Create indexes for geospatial queries
+const createIndexes = async () => {
+  try {
+    await mongoose.connection.collection('rides').createIndex(
+      { 'origin.coordinates': '2dsphere' },
+      { background: true }
+    );
+    await mongoose.connection.collection('rides').createIndex(
+      { 'destination.coordinates': '2dsphere' },
+      { background: true }
+    );
+    console.log('Created 2dsphere index on origin.coordinates and destination.coordinates');
+  } catch (err) {
+    console.error('Error creating indexes:', err);
+  }
+};
+
+// Call the function to create indexes when the model is loaded
+createIndexes();
+
 const rideSchema = new mongoose.Schema({
   type: {
     type: String,

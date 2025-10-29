@@ -323,14 +323,24 @@ class _AvailableRidesScreenState extends State<AvailableRidesScreen> {
   }
 
   String _calculateEstimatedTime(Ride ride) {
-    // Simple calculation based on distance
-    final distance = LocationService.calculateDistance(ride.origin, ride.destination);
-    final estimatedMinutes = (distance * 2).round(); // Rough estimate: 2 minutes per km
-    return '$estimatedMinutes min';
+    try {
+      // Simple calculation based on distance
+      final distance = LocationService.calculateDistance(ride.origin, ride.destination);
+      final estimatedMinutes = (distance * 2).round(); // Rough estimate: 2 minutes per km
+      return '$estimatedMinutes min';
+    } catch (e) {
+      debugPrint('Error calculating estimated time: $e');
+      return 'N/A';
+    }
   }
 
   String _calculateDistance(Ride ride) {
-    final distance = LocationService.calculateDistance(ride.origin, ride.destination);
-    return distance.toStringAsFixed(1);
+    try {
+      final distance = LocationService.calculateDistance(ride.origin, ride.destination);
+      return distance.toStringAsFixed(1);
+    } catch (e) {
+      debugPrint('Error calculating distance: $e');
+      return 'N/A';
+    }
   }
 }

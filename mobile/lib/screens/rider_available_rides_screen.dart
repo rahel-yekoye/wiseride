@@ -69,22 +69,25 @@ class _RiderAvailableRidesScreenState extends State<RiderAvailableRidesScreen> {
     for (final ride in _availableRides) {
       if (ride.id != null) {
         try {
-          final distanceData = await LocationService.calculateDrivingDistance(
+          // Calculate distance directly using LocationService
+          final distance = LocationService.calculateDistance(
             ride.origin,
             ride.destination,
           );
-
-          final dynamicFare = await LocationService.calculateDynamicFare(
-            ride.origin,
-            ride.destination,
-            ride.vehicleType ?? 'bus',
-          );
+          
+          // Estimate duration (assuming average speed of 30 km/h)
+          final duration = (distance / (30 / 3.6) / 60).round(); // in minutes
+          
+          // Calculate fare based on distance and vehicle type
+          final baseFare = _getBaseFare(ride.vehicleType);
+          final perKmRate = _getPerKmRate(ride.vehicleType);
+          final fare = baseFare + (distance / 1000 * perKmRate);
 
           setState(() {
             _rideCalculations[ride.id!] = {
-              'distance': distanceData['distance'],
-              'duration': distanceData['duration'],
-              'fare': dynamicFare,
+              'distance': distance,
+              'duration': duration,
+              'fare': fare,
             };
           });
         } catch (e) {
@@ -566,20 +569,15 @@ class _RiderAvailableRidesScreenState extends State<RiderAvailableRidesScreen> {
   }
 
   String _formatStatus(String status) {
-    switch (status) {
-      case 'requested':
-        return 'Available';
-      case 'accepted':
-        return 'Accepted';
-      case 'in_progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return status;
-    }
+    if (status.isEmpty) return status;
+    
+    // Handle snake_case to Title Case conversion
+    return status
+        .split('_')
+        .map((word) => word.isNotEmpty 
+            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+            : '')
+        .join(' ');
   }
 
   Color _getStatusColor(String status) {
@@ -596,6 +594,38 @@ class _RiderAvailableRidesScreenState extends State<RiderAvailableRidesScreen> {
         return Colors.red;
       default:
         return Colors.black;
+    }
+  }
+  
+  // Helper method to get base fare based on vehicle type
+  double _getBaseFare(String? vehicleType) {
+    switch (vehicleType?.toLowerCase()) {
+      case 'bus':
+        return 5.0;
+      case 'minibus':
+        return 8.0;
+      case 'taxi':
+        return 10.0;
+      case 'private_car':
+        return 15.0;
+      default:
+        return 7.0; // Default base fare
+    }
+  }
+  
+  // Helper method to get per km rate based on vehicle type
+  double _getPerKmRate(String? vehicleType) {
+    switch (vehicleType?.toLowerCase()) {
+      case 'bus':
+        return 0.5;
+      case 'minibus':
+        return 0.7;
+      case 'taxi':
+        return 1.0;
+      case 'private_car':
+        return 1.2;
+      default:
+        return 0.6; // Default per km rate
     }
   }
 }

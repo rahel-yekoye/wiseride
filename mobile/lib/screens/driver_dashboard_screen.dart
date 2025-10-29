@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import '../services/socket_service.dart';
+import '../models/school_contract.dart' show Location;
 import 'available_rides_screen.dart';
 import 'driver_earnings_screen.dart';
 import 'driver_profile_screen.dart';
@@ -92,7 +93,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AvailableRidesScreen(),
+                  builder: (context) => AvailableRidesScreen(
+                    origin: Location(
+                      lat: rideData['origin']['lat'],
+                      lng: rideData['origin']['lng'],
+                      address: rideData['origin']['address'],
+                    ),
+                    destination: Location(
+                      lat: rideData['destination']['lat'],
+                      lng: rideData['destination']['lng'],
+                      address: rideData['destination']['address'],
+                    ),
+                    vehicleType: rideData['vehicleType'],
+                  ),
                 ),
               );
             },

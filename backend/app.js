@@ -73,6 +73,18 @@ io.on('connection', (socket) => {
     console.log(`User ${data.userId} joined their room`);
   });
 
+  // Join driver room
+  socket.on('join_room', (data) => {
+    socket.join(data.room);
+    console.log(`User ${data.userId} joined room: ${data.room}`);
+  });
+
+  // Leave room
+  socket.on('leave_room', (data) => {
+    socket.leave(data.room);
+    console.log(`User ${data.userId} left room: ${data.room}`);
+  });
+
   // Join ride-specific room
   socket.on('join_ride_room', (data) => {
     socket.join(`ride_${data.rideId}`);
@@ -87,9 +99,12 @@ io.on('connection', (socket) => {
 
   // Handle ride requests
   socket.on('ride_request', (data) => {
-    // Notify available drivers
-    socket.broadcast.emit('new_ride_request', data);
-    console.log('Ride request broadcasted:', data.rideId);
+    // Notify all drivers in the 'drivers' room
+    io.to('drivers').emit('new_ride_request', {
+      ...data,
+      timestamp: new Date().toISOString()
+    });
+    console.log('Ride request sent to drivers:', data.rideId);
   });
 
   // Handle driver location updates

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/geocoding_service.dart';
 import 'booking_confirmation_screen.dart';
+import '../models/ride.dart';
+import '../models/school_contract.dart' show Location;
 
 class RouteSearchScreen extends StatefulWidget {
   const RouteSearchScreen({super.key});
@@ -84,14 +86,40 @@ class _RouteSearchScreenState extends State<RouteSearchScreen> {
             ElevatedButton.icon(
               onPressed: (_origin != null && _dest != null)
                   ? () async {
+                      // Create Location objects from the coordinates
+                      final originLocation = Location(
+                        lat: _origin!['lat']?.toDouble() ?? 0.0,
+                        lng: _origin!['lng']?.toDouble() ?? 0.0,
+                        address: _originCtrl.text,
+                      );
+                      
+                      final destLocation = Location(
+                        lat: _dest!['lat']?.toDouble() ?? 0.0,
+                        lng: _dest!['lng']?.toDouble() ?? 0.0,
+                        address: _destCtrl.text,
+                      );
+                      
+                      // Create a new Ride object with the selected locations
+                      final ride = Ride(
+                        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+                        type: 'standard',
+                        riderId: '',
+                        driverId: '',
+                        origin: originLocation,
+                        destination: destLocation,
+                        status: 'requested',
+                        vehicleType: 'standard',
+                        route: null,
+                        createdAt: DateTime.now(),
+                      );
+                      
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => BookingConfirmationScreen(
-                            origin: _origin!,
-                            destination: _dest!,
-                            originLabel: _originCtrl.text,
-                            destLabel: _destCtrl.text,
+                            ride: ride,
+                            origin: originLocation,
+                            destination: destLocation,
                           ),
                         ),
                       );

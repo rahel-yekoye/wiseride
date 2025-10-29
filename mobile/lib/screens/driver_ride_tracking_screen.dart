@@ -88,7 +88,7 @@ class _DriverRideTrackingScreenState extends State<DriverRideTrackingScreen> {
       await _notificationService.showDriverNotification(
         title: 'Ride Started',
         body: 'You have started the ride',
-        rideId: _ride.id!,
+        payload: _ride.id!,
       );
 
       if (mounted) {
@@ -121,7 +121,7 @@ class _DriverRideTrackingScreenState extends State<DriverRideTrackingScreen> {
       await _notificationService.showDriverNotification(
         title: 'Ride Completed',
         body: 'You have completed the ride',
-        rideId: _ride.id!,
+        payload: _ride.id!,
       );
 
       if (mounted) {

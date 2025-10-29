@@ -18,11 +18,14 @@ dependencies:
   geocoding: ^2.1.1
   # Notifications
   flutter_local_notifications: ^16.3.2
-  # permission_handler: ^11.2.0  # Already included below
+  timezone: ^0.9.4
+  rxdart: ^0.27.7
   # Real-time communication
   socket_io_client: ^2.0.3+1
   # Firebase
-  firebase_core: ^2.15.0
+  firebase_core: ^2.24.1
+  firebase_messaging: ^14.7.2  # For push notifications
+  firebase_messaging_web: ^3.8.2  # Explicitly add web support
   # Payment
   stripe_payment: ^1.1.4
   # UI Components
@@ -32,6 +35,10 @@ dependencies:
   url_launcher: ^6.2.2
   permission_handler: ^11.2.0
   js: ^0.6.7
+  path_provider: ^2.1.1
+  path: ^1.8.3
+  sqflite: ^2.3.0
+  uuid: ^4.2.2
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +47,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  # Assets configuration
+  assets:
+    - assets/images/
+  
+  # Web-specific configuration
+  # Note: Web configuration should be in a separate file for Flutter web
+  # Create a web/index.html and web/firebase-messaging-sw.js for web-specific setup

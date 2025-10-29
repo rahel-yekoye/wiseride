@@ -87,18 +87,34 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         widget.destination,
       );
 
-      final dynamicFare = await LocationService.calculateDynamicFare(
-        widget.origin,
-        widget.destination,
-        widget.ride.vehicleType ?? 'bus',
-      );
+      try {
+        // Calculate distance using LocationService
+        _calculatedDistance = LocationService.calculateDistance(
+          widget.origin,
+          widget.destination,
+        );
+        
+        // Calculate dynamic fare
+        final dynamicFare = await LocationService.calculateDynamicFare(
+          widget.origin,
+          widget.destination,
+          widget.ride.vehicleType ?? 'bus',
+        );
 
-      setState(() {
-        _calculatedDistance = distanceData['distance'] as double;
-        _estimatedDuration = (distanceData['duration'] as double).round();
-        _calculatedFare = dynamicFare;
+        // Estimate duration (assuming average speed of 30 km/h)
+        _estimatedDuration = (_calculatedDistance / (30 / 3.6) / 60).round();
+        
+        setState(() {
+          _calculatedFare = dynamicFare;
+          _isCalculating = false;
+        });
+      } catch (e) {
+        // Fallback to simple distance calculation if API fails
+        _calculatedDistance = _calculateDistance();
+        _estimatedDuration = (_calculatedDistance / (30 / 3.6) / 60).round();
+        _calculatedFare = widget.ride.fare ?? 0.0;
         _isCalculating = false;
-      });
+      }
     } catch (e) {
       setState(() {
         _isCalculating = false;
@@ -694,7 +710,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   }
 
   double _calculateDistance() {
-    return LocationService.calculateDistance(widget.origin, widget.destination);
+    try {
+      // Check if we have valid origin and destination
+      if (widget.origin.lat == null || 
+          widget.origin.lng == null ||
+          widget.destination.lat == null ||
+          widget.destination.lng == null) {
+        throw Exception('Invalid origin or destination coordinates');
+      }
+      
+      // Calculate distance using LocationService
+      return LocationService.calculateDistance(
+        widget.origin,
+        widget.destination,
+      );
+    } catch (e) {
+      debugPrint('Error calculating distance: $e');
+      // Return a default distance in meters (e.g., 5km) if calculation fails
+      return 5000.0;
+    }
   }
 
   int _calculateEstimatedTime() {
